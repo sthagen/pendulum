@@ -6,17 +6,20 @@ import json
 import os
 
 from babel.core import get_global
-from babel.plural import (
-    PluralRule,
-    compile_zero,
-    _GettextCompiler,
-    _binary_compiler,
-    _unary_compiler,
-)
-from babel.dates import tokenize_pattern, PATTERN_CHARS
-from babel.localedata import load, normalize_locale, LocaleDataDict
+from babel.dates import PATTERN_CHARS
+from babel.dates import tokenize_pattern
+from babel.localedata import LocaleDataDict
+from babel.localedata import load
+from babel.localedata import normalize_locale
+from babel.plural import PluralRule
+from babel.plural import _binary_compiler
+from babel.plural import _GettextCompiler
+from babel.plural import _unary_compiler
+from babel.plural import compile_zero
+from cleo import Application
+from cleo import Command
+from cleo import argument
 
-from cleo import Application, Command
 from pendulum import __version__
 
 
@@ -43,22 +46,23 @@ class _LambdaCompiler(_GettextCompiler):
 
 
 class LocaleCreate(Command):
-    """
-    Creates locale translations.
 
-    locale:create
-        {locales?* : Locales to dump}
-    """
+    name = "create"
+    description = "Creates locale translations."
+
+    arguments = [argument("locales", "Locales to dump.", optional=False, multiple=True)]
 
     TEMPLATE = """# -*- coding: utf-8 -*-
 from __future__ import unicode_literals
+
+from .custom import translations as custom_translations
+
+
 \"\"\"
 {locale} locale file.
 
 It has been generated automatically and must not be modified directly.
 \"\"\"
-
-from .custom import translations as custom_translations
 
 
 locale = {{
@@ -71,6 +75,8 @@ locale = {{
 
     CUSTOM_TEMPLATE = """# -*- coding: utf-8 -*-
 from __future__ import unicode_literals
+
+
 \"\"\"
 {locale} custom locale file.
 \"\"\"
@@ -93,7 +99,7 @@ translations = {{}}
 
             normalized = normalize_locale(locale.replace("-", "_"))
             if not normalized:
-                self.error("Locale [{}] does not exist.".format(locale))
+                self.line("<error>Locale [{}] does not exist.</error>".format(locale))
                 continue
 
             self.line("<info>Generating <comment>{}</> locale.</>".format(locale))
@@ -229,11 +235,9 @@ translations = {{}}
 
 
 class LocaleRecreate(Command):
-    """
-    Recreate existing locales.
 
-    locale:recreate
-    """
+    name = "recreate"
+    description = "Recreate existing locales."
 
     def handle(self):
         # Listing locales
@@ -245,12 +249,21 @@ class LocaleRecreate(Command):
         self.call("locale:create", [("locales", locales)])
 
 
-class WindowsTzDump(Command):
-    """
-    Dumps the mapping of Windows timezones to IANA timezones.
+class LocaleCommand(Command):
 
-    windows:tz:dump
-    """
+    name = "locale"
+    description = "Locale related commands."
+
+    commands = [LocaleCreate()]
+
+    def handle(self):
+        self.call("help", self._config.name)
+
+
+class WindowsTzDump(Command):
+
+    name = "dump-timezones"
+    description = "Dumps the mapping of Windows timezones to IANA timezones."
 
     MAPPING_DIR = os.path.join("pendulum", "tz", "data")
 
@@ -269,10 +282,20 @@ class WindowsTzDump(Command):
             f.write(mapping)
 
 
-app = Application("Clock", __version__)
-app.add(LocaleCreate())
-app.add(LocaleRecreate())
-app.add(WindowsTzDump())
+class WindowsCommand(Command):
+
+    name = "windows"
+    description = "Windows related commands."
+
+    commands = [WindowsTzDump()]
+
+    def handle(self):
+        self.call("help", self._config.name)
+
+
+app = Application("clock", __version__)
+app.add(LocaleCommand())
+app.add(WindowsCommand())
 
 
 if __name__ == "__main__":
