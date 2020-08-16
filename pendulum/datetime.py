@@ -754,7 +754,7 @@ class DateTime(datetime.datetime, Date):
             )
         elif isinstance(delta, pendulum.Duration):
             return self.add(
-                years=delta.years, months=delta.months, seconds=delta.total_seconds()
+                years=delta.years, months=delta.months, seconds=delta._total
             )
 
         return self.add(seconds=delta.total_seconds())
@@ -770,19 +770,10 @@ class DateTime(datetime.datetime, Date):
         """
         if isinstance(delta, pendulum.Duration):
             return self.subtract(
-                years=delta.years,
-                months=delta.months,
-                weeks=delta.weeks,
-                days=delta.remaining_days,
-                hours=delta.hours,
-                minutes=delta.minutes,
-                seconds=delta.remaining_seconds,
-                microseconds=delta.microseconds,
+                years=delta.years, months=delta.months, seconds=delta._total
             )
 
-        return self.subtract(
-            days=delta.days, seconds=delta.seconds, microseconds=delta.microseconds
-        )
+        return self.subtract(seconds=delta.total_seconds())
 
     # DIFFERENCES
 
@@ -1503,6 +1494,8 @@ class DateTime(datetime.datetime, Date):
             microsecond = self.microsecond
         if tzinfo is True:
             tzinfo = self.tzinfo
+        if fold is None:
+            fold = self.fold
 
         transition_rule = pendulum.POST_TRANSITION
         if fold is not None:

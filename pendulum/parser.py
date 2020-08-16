@@ -5,8 +5,12 @@ import typing
 
 import pendulum
 
+from .date import Date
+from .datetime import DateTime
 from .parsing import _Interval
 from .parsing import parse as base_parse
+from .time import Duration
+from .time import Time
 from .tz import UTC
 
 
@@ -16,7 +20,9 @@ except ImportError:
     CDuration = None
 
 
-def parse(text, **options):  # type: (str, **typing.Any) -> str
+def parse(
+    text, **options
+):  # type: (str, **typing.Any) -> typing.Union[Date, Time, DateTime, Duration]
     # Use the mock now value if it exists
     options["now"] = options.get("now", pendulum.get_test_now())
 
